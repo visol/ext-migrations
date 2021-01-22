@@ -1,0 +1,13 @@
+services:
+
+  FriendsOfTYPO3\Migrations\Command\DoctrineStatusCommand:
+    tags:
+      - name: 'console.command'
+        command: 'migrations:status'
+        schedulable: false
+
+  FriendsOfTYPO3\Migrations\Command\DoctrineMigrateCommand:
+    tags:
+      - name: 'console.command'
+        command: 'migrations:migrate'
+        schedulable: false

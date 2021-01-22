@@ -1,0 +1,17 @@
+{
+	"name": "friendsoftypo3/migrations",
+	"type": "typo3-cms-extension",
+	"description": "Enable SQL migration powered by Doctrine",
+	"license": ["GPL-2.0-or-later"],
+	"keywords": ["TYPO3 CMS", "Migration"],
+	"require": {
+		"php": "^7.4",
+		"doctrine/migrations": "^3.0",
+		"typo3/cms-core": "^10.0"
+	},
+	"autoload": {
+		"psr-4": {
+			"FriendsOfTYPO3\\Migrations\\": "Classes/"
+		}
+	}
+}
