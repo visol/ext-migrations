@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace FriendsOfTYPO3\Migrations\Command;
 
+use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class DoctrineMigrateCommand extends AbstractDoctrineCommand
+class DoctrineExecutetCommand extends AbstractDoctrineCommand
 {
-
     protected function configure(): void
     {
         $this
@@ -18,12 +18,12 @@ class DoctrineMigrateCommand extends AbstractDoctrineCommand
             ->setDescription(
                 'Execute one or more migration versions up or down manually.'
             )
-//            ->addArgument(
-//                'versions',
-//                InputArgument::REQUIRED | InputArgument::IS_ARRAY,
-//                'The versions to execute.',
-//                null
-//            )
+            ->addArgument(
+                'versions',
+                InputArgument::REQUIRED | InputArgument::IS_ARRAY,
+                'The versions to execute.',
+                null
+            )
             ->addOption(
                 'write-sql',
                 null,

@@ -1,0 +1,3 @@
+# cat=basic//; type=string; label=Configuration file: The path to the configuration file.
+
+path_to_configuration_file = EXT:migrations/Configuration/migrations.php

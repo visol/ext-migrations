@@ -1,70 +1,89 @@
 <?php
 
+declare(strict_types=1);
+
 namespace FriendsOfTYPO3\Migrations\Command;
 
-use FriendsOfTYPO3\Migrations\Service\DoctrineService;
-use Symfony\Component\Console\Style\SymfonyStyle;
+use Doctrine\DBAL\DriverManager;
+use Doctrine\Migrations\Configuration\Connection\ExistingConnection;
+use Doctrine\Migrations\Configuration\Migration\PhpFile;
+use Doctrine\Migrations\DependencyFactory;
+use Doctrine\Migrations\Tools\Console\Command\DumpSchemaCommand;
+use Doctrine\Migrations\Tools\Console\Command\ExecuteCommand;
+use Doctrine\Migrations\Tools\Console\Command\GenerateCommand;
+use Doctrine\Migrations\Tools\Console\Command\LatestCommand;
+use Doctrine\Migrations\Tools\Console\Command\ListCommand;
+use Doctrine\Migrations\Tools\Console\Command\MigrateCommand;
+use Doctrine\Migrations\Tools\Console\Command\RollupCommand;
+use Doctrine\Migrations\Tools\Console\Command\StatusCommand;
+use Doctrine\Migrations\Tools\Console\Command\VersionCommand;
+use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputOption;
+use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
+use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
-/**
- * Class AbstractDoctrineCommand
- */
+use const DIRECTORY_SEPARATOR;
+
 abstract class AbstractDoctrineCommand extends Command
 {
-
-    public const SUCCESS = 'success';
-    public const WARNING = 'warning';
-    public const ERROR = 'error';
-    protected DoctrineService $doctrineService;
-    protected SymfonyStyle $io;
-
-    /**
-     * @var bool
-     */
-    protected $isSilent = false;
-
-    /**
-     * @param string $message
-     * @param array $arguments
-     * @param string $severity can be 'warning', 'error', 'success'
-     */
-    protected function log(string $message = '', array $arguments = [], $severity = '')
+    protected function configure(): void
     {
-        if (!$this->isSilent) {
-            $formattedMessage = vsprintf($message, $arguments);
-            if ($severity) {
-                $this->io->$severity($formattedMessage);
-            } else {
-                $this->io->writeln($formattedMessage);
-            }
-        }
+        $this->addOption(
+            'configuration',
+            null,
+            InputOption::VALUE_REQUIRED,
+            'The path to a migrations configuration file. <comment>[default: any of migrations.{php,xml,json,yml,yaml}]</comment>'
+        );
     }
 
-    /**
-     * @param string $message
-     * @param array $arguments
-     */
-    protected function success(string $message = '', array $arguments = [])
+    protected function runCli(): void
     {
-        $this->log($message, $arguments, self::SUCCESS);
+        $connection = DriverManager::getConnection(
+            [
+                'dbname' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['dbname'],
+                'user' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['user'],
+                'password' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['password'],
+                'host' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['host'],
+                'port' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['port'],
+                'driver' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['driver'],
+            ]
+        );
+
+        $config = new PhpFile($this->getConfigurationFilePath());
+
+        $dependencyFactory = DependencyFactory::fromConnection($config, new ExistingConnection($connection));
+
+        $cli = new Application('Doctrine Migrations');
+        $cli->setCatchExceptions(true);
+
+        $cli->addCommands([
+            new DumpSchemaCommand($dependencyFactory),
+            new ExecuteCommand($dependencyFactory),
+            new GenerateCommand($dependencyFactory),
+            new LatestCommand($dependencyFactory),
+            new ListCommand($dependencyFactory),
+            new MigrateCommand($dependencyFactory),
+            new RollupCommand($dependencyFactory),
+            new StatusCommand($dependencyFactory),
+            //new SyncMetadataCommand($dependencyFactory),
+            new VersionCommand($dependencyFactory),
+        ]);
+
+        $cli->run();
     }
 
-    /**
-     * @param string $message
-     * @param array $arguments
-     */
-    protected function warning(string $message = '', array $arguments = [])
+    private function getConfigurationFilePath(): string
     {
-        $this->log($message, $arguments, self::WARNING);
-    }
+        $configuration = GeneralUtility::makeInstance(
+            ExtensionConfiguration::class
+        )->get('migrations');
 
-    /**
-     * @param string $message
-     * @param array $arguments
-     */
-    protected function error(string $message = '', array $arguments = [])
-    {
-        $this->log($message, $arguments, self::ERROR);
+        return str_starts_with($configuration['path_to_configuration_file'], 'EXT:')
+            ? GeneralUtility::getFileAbsFileName($configuration['path_to_configuration_file'])
+            : Environment::getProjectPath()
+                . DIRECTORY_SEPARATOR
+                . ltrim($configuration['path_to_configuration_file'], DIRECTORY_SEPARATOR);
     }
-
 }
