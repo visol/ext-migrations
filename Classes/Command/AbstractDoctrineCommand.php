@@ -80,10 +80,10 @@ abstract class AbstractDoctrineCommand extends Command
             ExtensionConfiguration::class
         )->get('migrations');
 
-        return str_starts_with($configuration['path_to_configuration_file'], 'EXT:')
-            ? GeneralUtility::getFileAbsFileName($configuration['path_to_configuration_file'])
+        return str_starts_with($configuration['pathToConfigurationFile'], 'EXT:')
+            ? GeneralUtility::getFileAbsFileName($configuration['pathToConfigurationFile'])
             : Environment::getProjectPath()
                 . DIRECTORY_SEPARATOR
-                . ltrim($configuration['path_to_configuration_file'], DIRECTORY_SEPARATOR);
+                . ltrim($configuration['pathToConfigurationFile'], DIRECTORY_SEPARATOR);
     }
 }
