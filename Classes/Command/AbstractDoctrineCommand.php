@@ -6,6 +6,7 @@ namespace FriendsOfTYPO3\Migrations\Command;
 
 use Doctrine\DBAL\DriverManager;
 use Doctrine\Migrations\Configuration\Connection\ExistingConnection;
+use Doctrine\Migrations\Configuration\Migration\ConfigurationArray;
 use Doctrine\Migrations\Configuration\Migration\PhpFile;
 use Doctrine\Migrations\DependencyFactory;
 use Doctrine\Migrations\Tools\Console\Command\DumpSchemaCommand;
@@ -28,6 +29,21 @@ use const DIRECTORY_SEPARATOR;
 
 abstract class AbstractDoctrineCommand extends Command
 {
+
+    protected $defaultConfiguration = [
+        'table_storage' => [
+            'table_name' => 'migrations_doctrine_migrationstatus',
+            'version_column_name' => 'version',
+            'version_column_length' => 1024,
+            'executed_at_column_name' => 'executed_at',
+            'execution_time_column_name' => 'execution_time',
+        ],
+        'migrations_paths' => [],
+        'all_or_nothing' => true,
+        'check_database_platform' => true,
+        'organize_migrations' => 'none',
+    ];
+
     protected function configure(): void
     {
         $this->addOption(
@@ -51,9 +67,43 @@ abstract class AbstractDoctrineCommand extends Command
             ]
         );
 
-        $config = new PhpFile($this->getConfigurationFilePath());
+        $extConf = GeneralUtility::makeInstance(ExtensionConfiguration::class)->get('migrations');
 
-        $dependencyFactory = DependencyFactory::fromConnection($config, new ExistingConnection($connection));
+        if (
+            !isset($extConf['migrationsPaths'])
+            || !is_array($extConf['migrationsPaths'])
+        ) {
+            throw new \Exception(
+                "Invalid configuration in $['TYPO3_CONF_VARS']['EXTENSIONS']['migrations']['migrationsPaths'].
+Please configure your namespaces and paths in LocalConfiguration.php, e.g.
+
+'EXTENSIONS' => [
+    ...
+    'migrations' => [
+        'migrationsPaths' => [
+            'MyProject\Migrations' => 'EXT:myprojct/Migrations',
+        ],
+    ],
+    ...
+],
+                ",
+                1612181286
+            );
+        }
+
+        $configuration = array_merge(
+            $this->defaultConfiguration,
+            [
+                'migrations_paths' => $extConf['migrationsPaths']
+            ],
+        );
+
+        $this->parseTYPO3ExtPathsAndEnsureFolderExists($configuration['migrations_paths']);
+
+        $dependencyFactory = DependencyFactory::fromConnection(
+            new ConfigurationArray($configuration),
+            new ExistingConnection($connection)
+        );
 
         $cli = new Application('Doctrine Migrations');
         $cli->setCatchExceptions(true);
@@ -74,16 +124,15 @@ abstract class AbstractDoctrineCommand extends Command
         $cli->run();
     }
 
-    private function getConfigurationFilePath(): string
+    protected function parseTYPO3ExtPathsAndEnsureFolderExists(array &$migrations_paths): void
     {
-        $configuration = GeneralUtility::makeInstance(
-            ExtensionConfiguration::class
-        )->get('migrations');
-
-        return str_starts_with($configuration['pathToConfigurationFile'], 'EXT:')
-            ? GeneralUtility::getFileAbsFileName($configuration['pathToConfigurationFile'])
-            : Environment::getProjectPath()
-                . DIRECTORY_SEPARATOR
-                . ltrim($configuration['pathToConfigurationFile'], DIRECTORY_SEPARATOR);
+        array_walk(
+            $migrations_paths,
+            function (&$path) {
+                $path = GeneralUtility::getFileAbsFileName($path);
+                GeneralUtility::mkdir_deep($path);
+            }
+        );
     }
+
 }
