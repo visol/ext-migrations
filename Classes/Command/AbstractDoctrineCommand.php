@@ -32,7 +32,7 @@ abstract class AbstractDoctrineCommand extends Command
 
     protected $defaultConfiguration = [
         'table_storage' => [
-            'table_name' => 'migrations_doctrine_migrationstatus',
+            'table_name' => 'tx_migrations',
             'version_column_name' => 'version',
             'version_column_length' => 1024,
             'executed_at_column_name' => 'executed_at',
