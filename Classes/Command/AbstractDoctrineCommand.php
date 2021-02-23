@@ -56,16 +56,7 @@ abstract class AbstractDoctrineCommand extends Command
 
     protected function runCli(): void
     {
-        $connection = DriverManager::getConnection(
-            [
-                'dbname' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['dbname'],
-                'user' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['user'],
-                'password' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['password'],
-                'host' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['host'],
-                'port' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['port'],
-                'driver' => $GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']['driver'],
-            ]
-        );
+        $connection = DriverManager::getConnection($GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']);
 
         $extConf = GeneralUtility::makeInstance(ExtensionConfiguration::class)->get('migrations');
 
