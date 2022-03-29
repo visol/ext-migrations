@@ -9,7 +9,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class DoctrineExecutetCommand extends AbstractDoctrineCommand
+class DoctrineExecuteCommand extends AbstractDoctrineCommand
 {
     protected function configure(): void
     {
