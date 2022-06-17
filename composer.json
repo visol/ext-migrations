@@ -1,5 +1,5 @@
 {
-  "name": "friendsoftypo3/migrations",
+  "name": "visol/migrations",
   "type": "typo3-cms-extension",
   "description": "Enable SQL migration powered by Doctrine",
   "license": [
@@ -16,7 +16,7 @@
   },
   "autoload": {
     "psr-4": {
-      "FriendsOfTYPO3\\Migrations\\": "Classes/"
+      "Visol\\Migrations\\": "Classes/"
     }
   },
   "extra": {

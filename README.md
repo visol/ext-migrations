@@ -16,7 +16,7 @@ Install the extension with composer. For the time being it is required to declar
 ```
 
 ```shell
-composer require friendsoftypo3/migrations
+composer require visol/migrations
 ```
 
 After installing the extension, you might consider overriding the path to the configuration file in the extension manager of TYPO3.

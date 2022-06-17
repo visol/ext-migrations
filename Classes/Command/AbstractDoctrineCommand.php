@@ -2,12 +2,11 @@
 
 declare(strict_types=1);
 
-namespace FriendsOfTYPO3\Migrations\Command;
+namespace Visol\Migrations\Command;
 
 use Doctrine\DBAL\DriverManager;
 use Doctrine\Migrations\Configuration\Connection\ExistingConnection;
 use Doctrine\Migrations\Configuration\Migration\ConfigurationArray;
-use Doctrine\Migrations\Configuration\Migration\PhpFile;
 use Doctrine\Migrations\DependencyFactory;
 use Doctrine\Migrations\Tools\Console\Command\DumpSchemaCommand;
 use Doctrine\Migrations\Tools\Console\Command\ExecuteCommand;
@@ -22,7 +21,6 @@ use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputOption;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
-use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 use const DIRECTORY_SEPARATOR;

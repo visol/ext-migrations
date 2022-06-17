@@ -1,54 +1,54 @@
 services:
 
-  FriendsOfTYPO3\Migrations\Command\DoctrineDumpCommand:
+  Visol\Migrations\Command\DoctrineDumpCommand:
     tags:
       - name: 'console.command'
         command: 'migrations:dump'
         schedulable: false
 
-  FriendsOfTYPO3\Migrations\Command\DoctrineExecuteCommand:
+  Visol\Migrations\Command\DoctrineExecuteCommand:
     tags:
       - name: 'console.command'
         command: 'migrations:execute'
         schedulable: false
 
-  FriendsOfTYPO3\Migrations\Command\DoctrineGenerateCommand:
+  Visol\Migrations\Command\DoctrineGenerateCommand:
     tags:
       - name: 'console.command'
         command: 'migrations:generate'
         schedulable: false
 
-  FriendsOfTYPO3\Migrations\Command\DoctrineLatestCommand:
+  Visol\Migrations\Command\DoctrineLatestCommand:
     tags:
       - name: 'console.command'
         command: 'migrations:latest'
         schedulable: false
 
-  FriendsOfTYPO3\Migrations\Command\DoctrineListCommand:
+  Visol\Migrations\Command\DoctrineListCommand:
     tags:
       - name: 'console.command'
         command: 'migrations:list'
         schedulable: false
 
-  FriendsOfTYPO3\Migrations\Command\DoctrineMigrateCommand:
+  Visol\Migrations\Command\DoctrineMigrateCommand:
     tags:
       - name: 'console.command'
         command: 'migrations:migrate'
         schedulable: false
 
-  FriendsOfTYPO3\Migrations\Command\DoctrineRollupCommand:
+  Visol\Migrations\Command\DoctrineRollupCommand:
     tags:
       - name: 'console.command'
         command: 'migrations:rollup'
         schedulable: false
 
-  FriendsOfTYPO3\Migrations\Command\DoctrineStatusCommand:
+  Visol\Migrations\Command\DoctrineStatusCommand:
     tags:
       - name: 'console.command'
         command: 'migrations:status'
         schedulable: false
 
-  FriendsOfTYPO3\Migrations\Command\DoctrineVersionCommand:
+  Visol\Migrations\Command\DoctrineVersionCommand:
     tags:
       - name: 'console.command'
         command: 'migrations:version'
