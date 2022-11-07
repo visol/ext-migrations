@@ -32,6 +32,11 @@ EOT
         parent::configure();
     }
 
+    /**
+     * @throws \TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationPathDoesNotExistException
+     * @throws \TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationExtensionNotConfiguredException
+     * @throws \Doctrine\DBAL\Exception
+     */
     protected function execute(InputInterface $input, OutputInterface $output): void
     {
         $this->runCli();

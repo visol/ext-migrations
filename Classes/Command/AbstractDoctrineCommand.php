@@ -17,18 +17,17 @@ use Doctrine\Migrations\Tools\Console\Command\MigrateCommand;
 use Doctrine\Migrations\Tools\Console\Command\RollupCommand;
 use Doctrine\Migrations\Tools\Console\Command\StatusCommand;
 use Doctrine\Migrations\Tools\Console\Command\VersionCommand;
+use Exception;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputOption;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
-use const DIRECTORY_SEPARATOR;
-
 abstract class AbstractDoctrineCommand extends Command
 {
 
-    protected $defaultConfiguration = [
+    protected array $defaultConfiguration = [
         'table_storage' => [
             'table_name' => 'tx_migrations',
             'version_column_name' => 'version',
@@ -52,6 +51,11 @@ abstract class AbstractDoctrineCommand extends Command
         );
     }
 
+    /**
+     * @throws \TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationPathDoesNotExistException
+     * @throws \TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationExtensionNotConfiguredException
+     * @throws \Doctrine\DBAL\Exception
+     */
     protected function runCli(): void
     {
         $connection = DriverManager::getConnection($GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']);
@@ -62,7 +66,7 @@ abstract class AbstractDoctrineCommand extends Command
             !isset($extConf['migrationsPaths'])
             || !is_array($extConf['migrationsPaths'])
         ) {
-            throw new \Exception(
+            throw new Exception(
                 "Invalid configuration in $['TYPO3_CONF_VARS']['EXTENSIONS']['migrations']['migrationsPaths'].
 Please configure your namespaces and paths in LocalConfiguration.php, e.g.
 

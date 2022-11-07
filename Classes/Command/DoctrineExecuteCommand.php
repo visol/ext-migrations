@@ -21,8 +21,7 @@ class DoctrineExecuteCommand extends AbstractDoctrineCommand
             ->addArgument(
                 'versions',
                 InputArgument::REQUIRED | InputArgument::IS_ARRAY,
-                'The versions to execute.',
-                null
+                'The versions to execute.'
             )
             ->addOption(
                 'write-sql',
@@ -86,6 +85,9 @@ EOT
         parent::configure();
     }
 
+    /**
+     * @throws \Exception
+     */
     protected function execute(InputInterface $input, OutputInterface $output): void
     {
         $this->runCli();

@@ -86,6 +86,9 @@ EOT
         parent::configure();
     }
 
+    /**
+     * @throws \Exception
+     */
     protected function execute(InputInterface $input, OutputInterface $output): void
     {
         $this->runCli();

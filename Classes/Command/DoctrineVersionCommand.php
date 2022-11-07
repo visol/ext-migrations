@@ -19,8 +19,7 @@ class DoctrineVersionCommand extends AbstractDoctrineCommand
             ->addArgument(
                 'version',
                 InputArgument::OPTIONAL,
-                'The version to add or delete.',
-                null
+                'The version to add or delete.'
             )
             ->addOption(
                 'add',
@@ -80,6 +79,9 @@ EOT
         parent::configure();
     }
 
+    /**
+     * @throws \Exception
+     */
     protected function execute(InputInterface $input, OutputInterface $output): void
     {
         $this->runCli();
