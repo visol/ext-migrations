@@ -26,7 +26,6 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 abstract class AbstractDoctrineCommand extends Command
 {
-
     protected array $defaultConfiguration = [
         'table_storage' => [
             'table_name' => 'tx_migrations',
@@ -87,7 +86,7 @@ Please configure your namespaces and paths in LocalConfiguration.php, e.g.
         $configuration = array_merge(
             $this->defaultConfiguration,
             [
-                'migrations_paths' => $extConf['migrationsPaths']
+                'migrations_paths' => $extConf['migrationsPaths'],
             ],
         );
 

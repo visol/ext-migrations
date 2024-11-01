@@ -10,7 +10,7 @@ jobs:
   check-composer:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Install PHP
         uses: shivammathur/setup-php@v2
@@ -29,12 +29,12 @@ jobs:
     strategy:
       matrix:
         php-version:
-          - 7.4
-          - 8.0
           - 8.1
+          - 8.2
+          - 8.3
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Install PHP
         uses: shivammathur/setup-php@v2
@@ -43,4 +43,9 @@ jobs:
           coverage: none
 
       - name: PHP lint
-        run: "find *.php Classes Configuration -name '*.php' -print0 | xargs -0 -n 1 -P 4 php -l"
+        run: "find *.php Classes Configuration Tests -name '*.php' -print0 | xargs -0 -n 1 -P 4 php -l"
+
+      - name: OSKAR-PHP-CS-Fixer
+        uses: OskarStark/php-cs-fixer-ga@3.22.0
+        with:
+          args: --diff --dry-run

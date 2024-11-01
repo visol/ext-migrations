@@ -54,7 +54,8 @@ class DoctrineExecuteCommand extends AbstractDoctrineCommand
                 InputOption::VALUE_NONE,
                 'Time all the queries individually.'
             )
-            ->setHelp(<<<EOT
+            ->setHelp(
+                <<<EOT
 The <info>%command.name%</info> command executes migration versions up or down manually:
 
     <info>%command.full_name% FQCN</info>
