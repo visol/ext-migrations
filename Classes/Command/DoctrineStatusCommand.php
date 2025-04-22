@@ -12,7 +12,8 @@ class DoctrineStatusCommand extends AbstractDoctrineCommand
         $this
             ->setAliases(['status'])
             ->setDescription('View the status of a set of migrations.')
-            ->setHelp(<<<EOT
+            ->setHelp(
+                <<<EOT
 The <info>%command.name%</info> command outputs the status of a set of migrations:
 
     <info>%command.full_name%</info>
@@ -25,7 +26,7 @@ EOT
     /**
      * @throws \Exception
      */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $this->runCli();
     }

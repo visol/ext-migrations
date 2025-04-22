@@ -51,7 +51,8 @@ class DoctrineVersionCommand extends AbstractDoctrineCommand
                 InputOption::VALUE_OPTIONAL,
                 'Apply to specified version.'
             )
-            ->setHelp(<<<EOT
+            ->setHelp(
+                <<<EOT
 The <info>%command.name%</info> command allows you to manually add, delete or synchronize migration versions from the version table:
 
     <info>%command.full_name% MIGRATION-FQCN --add</info>
@@ -82,7 +83,7 @@ EOT
     /**
      * @throws \Exception
      */
-    protected function execute(InputInterface $input, OutputInterface $output): void
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $this->runCli();
     }

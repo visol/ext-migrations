@@ -16,7 +16,8 @@ class DoctrineRollupCommand extends AbstractDoctrineCommand
         $this
             ->setAliases(['rollup'])
             ->setDescription('Rollup migrations by deleting all tracked versions and insert the one version that exists.')
-            ->setHelp(<<<EOT
+            ->setHelp(
+                <<<EOT
 The <info>%command.name%</info> command rolls up migrations by deleting all tracked versions and
 inserts the one version that exists that was created with the <info>migrations:dump-schema</info> command.
 
@@ -30,7 +31,7 @@ EOT
     /**
      * @throws \Exception
      */
-    protected function execute(InputInterface $input, OutputInterface $output): void
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $this->runCli();
     }

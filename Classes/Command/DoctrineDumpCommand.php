@@ -10,7 +10,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class DoctrineDumpCommand extends AbstractDoctrineCommand
 {
-
     protected function configure(): void
     {
         parent::configure();
@@ -18,7 +17,8 @@ class DoctrineDumpCommand extends AbstractDoctrineCommand
         $this
             ->setAliases(['dump-schema'])
             ->setDescription('Dump the schema for your database to a migration.')
-            ->setHelp(<<<EOT
+            ->setHelp(
+                <<<EOT
 The <info>%command.name%</info> command dumps the schema for your database to a migration:
 
     <info>%command.full_name%</info>
@@ -56,7 +56,7 @@ EOT
     /**
      * @throws \Exception
      */
-    protected function execute(InputInterface $input, OutputInterface $output): void
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $this->runCli();
     }

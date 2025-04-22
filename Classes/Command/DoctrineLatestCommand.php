@@ -23,7 +23,7 @@ class DoctrineLatestCommand extends AbstractDoctrineCommand
      * @throws \TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationExtensionNotConfiguredException
      * @throws \Doctrine\DBAL\Exception
      */
-    protected function execute(InputInterface $input, OutputInterface $output): void
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $this->runCli();
     }

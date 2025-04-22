@@ -14,7 +14,8 @@ class DoctrineListCommand extends AbstractDoctrineCommand
         $this
             ->setAliases(['list-migrations'])
             ->setDescription('Display a list of all available migrations and their status.')
-            ->setHelp(<<<EOT
+            ->setHelp(
+                <<<EOT
 The <info>%command.name%</info> command outputs a list of all available migrations and their status:
 
     <info>%command.full_name%</info>
@@ -29,7 +30,7 @@ EOT
      * @throws \TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationExtensionNotConfiguredException
      * @throws \Doctrine\DBAL\Exception
      */
-    protected function execute(InputInterface $input, OutputInterface $output): void
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $this->runCli();
     }
