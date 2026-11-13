@@ -51,7 +51,7 @@ jobs:
         with:
           args: --diff --dry-run
 
-  # Same as the integration job in .gitlab-ci.yml, see tests/run.sh
+  # Installs the extension into a fresh TYPO3 project and runs the commands, see tests/run.sh
   integration:
     runs-on: ubuntu-latest
     strategy:

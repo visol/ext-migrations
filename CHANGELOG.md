@@ -12,7 +12,7 @@ Supports TYPO3 12.4, 13.4 and 14.3.
   Each migration still runs in its own transaction.
 - The commands return the exit code of Doctrine Migrations instead of calling `exit()`.
 - Integration tests for TYPO3 12, 13 and 14 on MariaDB and MySQL (`tests/run.sh`), run in
-  GitHub Actions and GitLab CI.
+  GitHub Actions.
 
 ## 4.0.0 (2022-06-17)
 

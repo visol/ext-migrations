@@ -5,7 +5,7 @@
 #
 # Usage: tests/run.sh <typo3-major>     e.g. tests/run.sh 14
 #
-# Database, from the environment (defaults match the GitLab CI service):
+# Database, from the environment:
 #   DB_HOST (db), DB_PORT (3306), DB_NAME (typo3), DB_USER (root), DB_PASSWORD (root)
 # The database must exist and be empty.
 #
