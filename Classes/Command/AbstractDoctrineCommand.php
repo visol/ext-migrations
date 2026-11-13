@@ -30,12 +30,18 @@ abstract class AbstractDoctrineCommand extends Command
         'table_storage' => [
             'table_name' => 'tx_migrations',
             'version_column_name' => 'version',
-            'version_column_length' => 1024,
+            // 191 characters keep the primary key within the 3072 byte index limit of InnoDB with
+            // utf8mb4 (4 bytes per character), the default charset of TYPO3 13 and 14.
+            'version_column_length' => 191,
             'executed_at_column_name' => 'executed_at',
             'execution_time_column_name' => 'execution_time',
         ],
         'migrations_paths' => [],
-        'all_or_nothing' => true,
+        // MySQL commits implicitly on every DDL statement. With Doctrine DBAL 4 (TYPO3 13 and 14) a
+        // transaction around all migrations therefore fails with "SAVEPOINT ... does not exist"
+        // as soon as one of them changes the schema. Each migration still runs in its own
+        // transaction.
+        'all_or_nothing' => false,
         'check_database_platform' => true,
         'organize_migrations' => 'none',
     ];
@@ -55,7 +61,7 @@ abstract class AbstractDoctrineCommand extends Command
      * @throws \TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationExtensionNotConfiguredException
      * @throws \Doctrine\DBAL\Exception
      */
-    protected function runCli(): void
+    protected function runCli(): int
     {
         $connection = DriverManager::getConnection($GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']);
 
@@ -99,6 +105,8 @@ Please configure your namespaces and paths in LocalConfiguration.php, e.g.
 
         $cli = new Application('Doctrine Migrations');
         $cli->setCatchExceptions(true);
+        // Return the exit code to the TYPO3 console instead of calling exit() in between
+        $cli->setAutoExit(false);
 
         $cli->addCommands([
             new DumpSchemaCommand($dependencyFactory),
@@ -113,7 +121,7 @@ Please configure your namespaces and paths in LocalConfiguration.php, e.g.
             new VersionCommand($dependencyFactory),
         ]);
 
-        $cli->run();
+        return $cli->run();
     }
 
     protected function parseTYPO3ExtPathsAndEnsureFolderExists(array &$migrations_paths): void

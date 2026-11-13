@@ -28,6 +28,6 @@ EOT
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $this->runCli();
+        return $this->runCli();
     }
 }
