@@ -7,7 +7,9 @@ Supports TYPO3 12.4, 13.4 and 14.3, and PHP up to 8.5.
   existing columns and fails if a version name is longer than 191 characters; check with
   `SELECT MAX(CHAR_LENGTH(version)) FROM tx_migrations` before updating. Where the table has no
   primary key yet, the first schema update reports "Specified key was too long" and a second one
-  completes it.
+  completes it. `migrations:migrate` shortens the column as well, so a deploy that migrates
+  before the schema update needs no change. Until either has run, `migrations:status` fails with
+  "The metadata storage is not up to date".
 - On MySQL and MariaDB, `all_or_nothing` is off: a failing migration no longer rolls back the
   ones before it in the same run. Schema changes on MySQL commit immediately anyway, even inside a
   migration. Other platforms keep `all_or_nothing`.
