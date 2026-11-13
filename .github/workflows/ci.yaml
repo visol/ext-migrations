@@ -32,6 +32,8 @@ jobs:
           - 8.1
           - 8.2
           - 8.3
+          - 8.4
+          - 8.5
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -43,9 +45,58 @@ jobs:
           coverage: none
 
       - name: PHP lint
-        run: "find *.php Classes Configuration Tests -name '*.php' -print0 | xargs -0 -n 1 -P 4 php -l"
+        run: "find *.php Classes Configuration -name '*.php' -print0 | xargs -0 -n 1 -P 4 php -l"
 
       - name: OSKAR-PHP-CS-Fixer
         uses: OskarStark/php-cs-fixer-ga@3.22.0
         with:
           args: --diff --dry-run
+
+  # Installs the extension into a fresh TYPO3 project and runs the commands, see tests/run.sh
+  integration:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      # Every TYPO3 version on both databases with PHP 8.4, once more on PHP 8.5, and on the
+      # lowest PHP version each TYPO3 version supports
+      matrix:
+        typo3: ['12', '13', '14']
+        php: ['8.4']
+        db-image: ['mariadb:10.11', 'mysql:8.0']
+        include:
+          - {typo3: '12', php: '8.5', db-image: 'mysql:8.0'}
+          - {typo3: '13', php: '8.5', db-image: 'mysql:8.0'}
+          - {typo3: '14', php: '8.5', db-image: 'mysql:8.0'}
+          - {typo3: '12', php: '8.1', db-image: 'mysql:8.0'}
+          - {typo3: '13', php: '8.2', db-image: 'mysql:8.0'}
+          - {typo3: '14', php: '8.2', db-image: 'mysql:8.0'}
+    services:
+      db:
+        image: ${{ matrix.db-image }}
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: typo3
+        ports:
+          - 3306:3306
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mysqli, intl
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer
+          key: composer-typo3-${{ matrix.typo3 }}-php-${{ matrix.php }}-${{ hashFiles('composer.json') }}
+          restore-keys: composer-typo3-${{ matrix.typo3 }}-php-${{ matrix.php }}-
+
+      - name: Run tests
+        run: bash tests/run.sh ${{ matrix.typo3 }}
+        env:
+          DB_HOST: 127.0.0.1

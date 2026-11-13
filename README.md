@@ -39,6 +39,17 @@ The default configuration file is to be found in `EXT:migrations/Configuration/m
 
 To get started, we can recommend executing the command `migrations:generate`. It will generate a default migration skeleton file.
 
+# Tests
+
+`tests/run.sh` installs the extension into a fresh TYPO3 project and runs the commands against an
+empty database; the scenarios are described at the top of the script.
+
+```shell
+DB_HOST=127.0.0.1 DB_USER=root DB_PASSWORD=root DB_NAME=typo3 tests/run.sh 14
+```
+
+GitHub Actions runs it for TYPO3 12, 13 and 14, see `.github/workflows/ci.yaml`.
+
 # Credits
 
 Source of inspiration and first implementation from Kai Strobach
