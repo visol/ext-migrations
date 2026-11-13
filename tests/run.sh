@@ -12,8 +12,13 @@
 # Scenarios:
 #   1. Fresh installation: tx_migrations comes from ext_tables.sql, then generate, migrate,
 #      list, status and execute --down, including the exit code of a failing migration.
-#   2. Table from an older version of this extension (version varchar(1024), utf8mb3): after
-#      the schema update, executed migrations are still known and new ones run.
+#   2. Tables from older versions of this extension, after the schema update executed migrations
+#      are still known and new ones run:
+#      a. version varchar(1024) DEFAULT '' without primary key, as the old ext_tables.sql made it;
+#         this one needs two schema updates, see upgrade_from()
+#      b. the same with the primary key Doctrine added on utf8mb3 (e.g. on TYPO3 12)
+#
+# The project is removed afterwards; set KEEP_PROJECT=1 to keep it for debugging.
 
 set -euo pipefail
 
@@ -33,6 +38,7 @@ DB_PASSWORD="${DB_PASSWORD:-root}"
 
 EXTENSION_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROJECT_PATH="$(mktemp -d)"
+[ "${KEEP_PROJECT:-0}" = "1" ] || trap 'rm -rf "${PROJECT_PATH}"' EXIT
 MIGRATIONS_PATH="${PROJECT_PATH}/migrations"
 NAMESPACE='MigTest\Migrations'
 
@@ -112,12 +118,18 @@ EOF
 
 echo "TYPO3 ${TYPO3_CONSTRAINT}, project in ${PROJECT_PATH}"
 
+php -r 'exit(extension_loaded("mysqli") ? 0 : 1);' || { echo "The PHP extension mysqli is missing" >&2; exit 1; }
+
 # A database service in CI may still be starting when the job begins
 for attempt in $(seq 1 30); do
     sql 'SELECT 1' > /dev/null 2>&1 && break
     [ "${attempt}" = "30" ] && { echo "Database ${DB_HOST}:${DB_PORT}/${DB_NAME} not reachable" >&2; exit 1; }
     sleep 2
 done
+if [ "$(sql 'SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE()')" != "0" ]; then
+    echo "Database ${DB_NAME} is not empty; the tests need an empty one" >&2
+    exit 1
+fi
 
 cat > "${PROJECT_PATH}/composer.json" <<EOF
 {
@@ -146,7 +158,7 @@ cd "${PROJECT_PATH}"
 # The two advisory settings above (Composer 2.11+ and 2.9/2.10): every public release of 12.4
 # has security advisories, the fixed ones are ELTS only, and Composer refuses to install them.
 # Irrelevant for a throwaway test project.
-composer install --no-interaction --no-progress --quiet
+composer install --no-interaction --no-progress
 
 typo3 setup --no-interaction --force --driver=mysqli --host="${DB_HOST}" --port="${DB_PORT}" \
     --dbname="${DB_NAME}" --username="${DB_USER}" --password="${DB_PASSWORD}" \
@@ -200,22 +212,38 @@ expect_equals "" "$(column mig_probe title COLUMN_NAME)" "down reverted the sche
 expect_equals "1" "$(sql "SELECT COUNT(*) FROM tx_migrations")" "down removed the entry"
 rm -f "${MIGRATIONS_PATH}/Version20200101000001.php"
 
-echo "Scenario 2: tx_migrations from an older version of the extension"
+# upgrade_from <label> <CREATE TABLE statement for the old tx_migrations> <schema update runs needed>
+upgrade_from() {
+    echo "Scenario 2$1"
 
-sql "DROP TABLE tx_migrations"
-sql "DROP TABLE IF EXISTS mig_probe"
-sql "CREATE TABLE tx_migrations (version varchar(1024) NOT NULL, executed_at datetime DEFAULT NULL, execution_time int DEFAULT NULL, PRIMARY KEY (version)) DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci"
-sql "CREATE TABLE mig_probe (uid INT NOT NULL)"
-sql "INSERT INTO tx_migrations VALUES ('${NAMESPACE//\\/\\\\}\\\\Version20200101000000', '2020-01-01 00:00:00', 5)"
+    sql "DROP TABLE IF EXISTS tx_migrations, mig_probe, mig_probe_2"
+    sql "$2"
+    sql "CREATE TABLE mig_probe (uid INT NOT NULL)"
+    sql "INSERT INTO tx_migrations VALUES ('${NAMESPACE//\\/\\\\}\\\\Version20200101000000', '2020-01-01 00:00:00', 5)"
 
-expect_exit 0 "database:updateschema updates the table" typo3 database:updateschema '*.add,*.change' --no-interaction
-expect_equals "191" "$(column tx_migrations version CHARACTER_MAXIMUM_LENGTH)" "tx_migrations.version shortened to varchar(191)"
-expect_equals "${NAMESPACE}\\Version20200101000000" "$(sql "SELECT version FROM tx_migrations")" "executed migration kept"
+    if [ "$3" = "2" ]; then
+        # TYPO3 adds the primary key before it shortens the column, so the first run fails on the
+        # key (too long for utf8mb4) but shortens the column; the second run adds the key.
+        typo3 database:updateschema '*.add,*.change' --no-interaction > /dev/null 2>&1 || true
+    fi
+    expect_exit 0 "database:updateschema updates the table" typo3 database:updateschema '*.add,*.change' --no-interaction
+    expect_equals "191" "$(column tx_migrations version CHARACTER_MAXIMUM_LENGTH)" "tx_migrations.version shortened to varchar(191)"
+    expect_equals "${NAMESPACE}\\Version20200101000000" "$(sql "SELECT version FROM tx_migrations")" "executed migration kept"
 
-write_migration Version20200103000000 "\$this->addSql('CREATE TABLE mig_probe_2 (uid INT NOT NULL)');" "\$this->addSql('DROP TABLE mig_probe_2');"
-expect_exit 0 "migrations:migrate runs only the new migration" typo3 migrations:migrate --no-interaction
-expect_equals "mig_probe_2" "$(sql "SHOW TABLES LIKE 'mig_probe_2'")" "new migration created its table"
-expect_equals "2" "$(sql "SELECT COUNT(*) FROM tx_migrations")" "both migrations recorded"
+    write_migration Version20200103000000 "\$this->addSql('CREATE TABLE mig_probe_2 (uid INT NOT NULL)');" "\$this->addSql('DROP TABLE mig_probe_2');"
+    expect_exit 0 "migrations:migrate runs only the new migration" typo3 migrations:migrate --no-interaction
+    expect_equals "mig_probe_2" "$(sql "SHOW TABLES LIKE 'mig_probe_2'")" "new migration created its table"
+    expect_equals "2" "$(sql "SELECT COUNT(*) FROM tx_migrations")" "both migrations recorded"
+    expect_equals "version" "$(sql "SELECT COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tx_migrations' AND CONSTRAINT_NAME = 'PRIMARY'")" \
+        "tx_migrations has the primary key on version"
+    expect_exit 0 "migrations:status" typo3 migrations:status --no-interaction
+    rm -f "${MIGRATIONS_PATH}/Version20200103000000.php"
+}
+
+upgrade_from "a: varchar(1024) DEFAULT '' without primary key" \
+    "CREATE TABLE tx_migrations (version varchar(1024) DEFAULT '' NOT NULL, executed_at datetime DEFAULT NULL, execution_time int DEFAULT NULL)" 2
+upgrade_from "b: varchar(1024) with primary key on utf8mb3" \
+    "CREATE TABLE tx_migrations (version varchar(1024) NOT NULL, executed_at datetime DEFAULT NULL, execution_time int DEFAULT NULL, PRIMARY KEY (version)) DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci" 1
 
 echo
 if [ "${FAILURES}" -gt 0 ]; then

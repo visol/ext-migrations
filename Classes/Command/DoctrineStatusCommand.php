@@ -2,9 +2,6 @@
 
 namespace Visol\Migrations\Command;
 
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Output\OutputInterface;
-
 class DoctrineStatusCommand extends AbstractDoctrineCommand
 {
     protected function configure(): void
@@ -21,13 +18,5 @@ EOT
             );
 
         parent::configure();
-    }
-
-    /**
-     * @throws \Exception
-     */
-    protected function execute(InputInterface $input, OutputInterface $output): int
-    {
-        return $this->runCli();
     }
 }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Visol\Migrations\Command;
 
-use Doctrine\DBAL\DriverManager;
+use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\Migrations\Configuration\Connection\ExistingConnection;
 use Doctrine\Migrations\Configuration\Migration\ConfigurationArray;
 use Doctrine\Migrations\DependencyFactory;
@@ -20,8 +20,11 @@ use Doctrine\Migrations\Tools\Console\Command\VersionCommand;
 use Exception;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Output\OutputInterface;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
+use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 abstract class AbstractDoctrineCommand extends Command
@@ -37,11 +40,8 @@ abstract class AbstractDoctrineCommand extends Command
             'execution_time_column_name' => 'execution_time',
         ],
         'migrations_paths' => [],
-        // MySQL commits implicitly on every DDL statement. With Doctrine DBAL 4 (TYPO3 13 and 14) a
-        // transaction around all migrations therefore fails with "SAVEPOINT ... does not exist"
-        // as soon as one of them changes the schema. Each migration still runs in its own
-        // transaction.
-        'all_or_nothing' => false,
+        // Turned off on MySQL and MariaDB in runCli()
+        'all_or_nothing' => true,
         'check_database_platform' => true,
         'organize_migrations' => 'none',
     ];
@@ -57,13 +57,26 @@ abstract class AbstractDoctrineCommand extends Command
     }
 
     /**
+     * Every command hands over to the Doctrine command of the same name, see runCli()
+     *
+     * @throws \Exception
+     */
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        return $this->runCli();
+    }
+
+    /**
      * @throws \TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationPathDoesNotExistException
      * @throws \TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationExtensionNotConfiguredException
      * @throws \Doctrine\DBAL\Exception
      */
     protected function runCli(): int
     {
-        $connection = DriverManager::getConnection($GLOBALS['TYPO3_CONF_VARS']['DB']['Connections']['Default']);
+        // TYPO3's own connection, so migrations see the same session settings (initCommands,
+        // driver middlewares) as TYPO3
+        $connection = GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getConnectionByName(ConnectionPool::DEFAULT_CONNECTION_NAME);
 
         $extConf = GeneralUtility::makeInstance(ExtensionConfiguration::class)->get('migrations');
 
@@ -95,6 +108,13 @@ Please configure your namespaces and paths in LocalConfiguration.php, e.g.
                 'migrations_paths' => $extConf['migrationsPaths'],
             ],
         );
+
+        // MySQL and MariaDB commit implicitly on every schema change, so a transaction around all
+        // migrations cannot roll them back anyway. With Doctrine DBAL 4 (TYPO3 13 and 14) it even
+        // fails with "SAVEPOINT ... does not exist" as soon as one migration changes the schema.
+        if ($connection->getDatabasePlatform() instanceof AbstractMySQLPlatform) {
+            $configuration['all_or_nothing'] = false;
+        }
 
         $this->parseTYPO3ExtPathsAndEnsureFolderExists($configuration['migrations_paths']);
 

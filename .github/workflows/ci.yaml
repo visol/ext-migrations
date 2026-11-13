@@ -57,7 +57,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      # Every TYPO3 version on both databases with PHP 8.4, and once more on PHP 8.5
+      # Every TYPO3 version on both databases with PHP 8.4, once more on PHP 8.5, and on the
+      # lowest PHP version each TYPO3 version supports
       matrix:
         typo3: ['12', '13', '14']
         php: ['8.4']
@@ -66,6 +67,9 @@ jobs:
           - {typo3: '12', php: '8.5', db-image: 'mysql:8.0'}
           - {typo3: '13', php: '8.5', db-image: 'mysql:8.0'}
           - {typo3: '14', php: '8.5', db-image: 'mysql:8.0'}
+          - {typo3: '12', php: '8.1', db-image: 'mysql:8.0'}
+          - {typo3: '13', php: '8.2', db-image: 'mysql:8.0'}
+          - {typo3: '14', php: '8.2', db-image: 'mysql:8.0'}
     services:
       db:
         image: ${{ matrix.db-image }}
