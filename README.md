@@ -49,8 +49,8 @@ existing `tx_migrations` table from an older version of this extension.
 DB_HOST=127.0.0.1 DB_USER=root DB_PASSWORD=root DB_NAME=typo3 tests/run.sh 14
 ```
 
-The database must exist and be empty. CI runs it for TYPO3 12, 13 and 14 on MariaDB 10.11 and
-MySQL 8.0, see `.github/workflows/ci.yaml`.
+The database must exist and be empty. CI runs it for TYPO3 12, 13 and 14 on PHP 8.4 and 8.5,
+with MariaDB 10.11 and MySQL 8.0, see `.github/workflows/ci.yaml`.
 
 # Credits
 
