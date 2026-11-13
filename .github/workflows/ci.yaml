@@ -57,10 +57,15 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
+      # Every TYPO3 version on both databases with PHP 8.4, and once more on PHP 8.5
       matrix:
         typo3: ['12', '13', '14']
-        php: ['8.4', '8.5']
+        php: ['8.4']
         db-image: ['mariadb:10.11', 'mysql:8.0']
+        include:
+          - {typo3: '12', php: '8.5', db-image: 'mysql:8.0'}
+          - {typo3: '13', php: '8.5', db-image: 'mysql:8.0'}
+          - {typo3: '14', php: '8.5', db-image: 'mysql:8.0'}
     services:
       db:
         image: ${{ matrix.db-image }}
@@ -80,10 +85,14 @@ jobs:
           coverage: none
           tools: composer:v2
 
+      - name: Cache Composer downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer
+          key: composer-typo3-${{ matrix.typo3 }}-php-${{ matrix.php }}-${{ hashFiles('composer.json') }}
+          restore-keys: composer-typo3-${{ matrix.typo3 }}-php-${{ matrix.php }}-
+
       - name: Run tests
         run: bash tests/run.sh ${{ matrix.typo3 }}
         env:
           DB_HOST: 127.0.0.1
-          DB_USER: root
-          DB_PASSWORD: root
-          DB_NAME: typo3

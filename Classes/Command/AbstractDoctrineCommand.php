@@ -30,8 +30,8 @@ abstract class AbstractDoctrineCommand extends Command
         'table_storage' => [
             'table_name' => 'tx_migrations',
             'version_column_name' => 'version',
-            // 191 characters keep the primary key within the 3072 byte index limit of InnoDB with
-            // utf8mb4 (4 bytes per character), the default charset of TYPO3 13 and 14.
+            // Doctrine's default. Must match ext_tables.sql; 1024 characters do not fit the primary
+            // key into an InnoDB index with utf8mb4, the default charset of TYPO3 13 and 14.
             'version_column_length' => 191,
             'executed_at_column_name' => 'executed_at',
             'execution_time_column_name' => 'execution_time',

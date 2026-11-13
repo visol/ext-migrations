@@ -56,28 +56,21 @@ typo3() {
     "${PROJECT_PATH}/vendor/bin/typo3" "$@"
 }
 
-# expect_exit <expected code> <description> <command...>
+# Prints one field of information_schema.COLUMNS: column <table> <column> <field>
+column() {
+    sql "SELECT $3 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '$1' AND COLUMN_NAME = '$2'"
+}
+
+# expect_exit <expected code, or !0 for any failure> <description> <command...>
 expect_exit() {
     local expected="$1" description="$2" code=0
     shift 2
     "$@" > "${PROJECT_PATH}/last-output.txt" 2>&1 || code=$?
-    if [ "${code}" = "${expected}" ]; then
+    if [ "${code}" = "${expected}" ] || { [ "${expected}" = '!0' ] && [ "${code}" != 0 ]; }; then
         pass "${description} (exit ${code})"
     else
         fail "${description}: expected exit ${expected}, got ${code}"
         sed 's/^/       /' "${PROJECT_PATH}/last-output.txt" | tail -20
-    fi
-}
-
-# expect_failure <description> <command...>
-expect_failure() {
-    local description="$1" code=0
-    shift
-    "$@" > "${PROJECT_PATH}/last-output.txt" 2>&1 || code=$?
-    if [ "${code}" != "0" ]; then
-        pass "${description} (exit ${code})"
-    else
-        fail "${description}: expected a non-zero exit code"
     fi
 }
 
@@ -121,10 +114,7 @@ echo "TYPO3 ${TYPO3_CONSTRAINT}, project in ${PROJECT_PATH}"
 
 # A database service in CI may still be starting when the job begins
 for attempt in $(seq 1 30); do
-    if php -d display_errors=stderr -r 'mysqli_report(MYSQLI_REPORT_OFF); exit(@mysqli_connect($argv[1], $argv[2], $argv[3], $argv[4], (int)$argv[5]) ? 0 : 1);' \
-        "${DB_HOST}" "${DB_USER}" "${DB_PASSWORD}" "${DB_NAME}" "${DB_PORT}"; then
-        break
-    fi
+    sql 'SELECT 1' > /dev/null 2>&1 && break
     [ "${attempt}" = "30" ] && { echo "Database ${DB_HOST}:${DB_PORT}/${DB_NAME} not reachable" >&2; exit 1; }
     sleep 2
 done
@@ -144,15 +134,18 @@ cat > "${PROJECT_PATH}/composer.json" <<EOF
         "helhum/typo3-console": "*",
         "visol/migrations": "@dev"
     },
-    "config": {"allow-plugins": true}
+    "config": {
+        "allow-plugins": true,
+        "policy": {"advisories": {"block": false}},
+        "audit": {"block-insecure": false}
+    }
 }
 EOF
 
 cd "${PROJECT_PATH}"
-# Every public release of 12.4 has security advisories (the fixed ones are ELTS only), and
-# newer Composer versions refuse to install them. Irrelevant for a throwaway test project.
-composer config policy.advisories.block false > /dev/null 2>&1 || true
-composer config audit.block-insecure false > /dev/null 2>&1 || true
+# The two advisory settings above (Composer 2.11+ and 2.9/2.10): every public release of 12.4
+# has security advisories, the fixed ones are ELTS only, and Composer refuses to install them.
+# Irrelevant for a throwaway test project.
 composer install --no-interaction --no-progress --quiet
 
 typo3 setup --no-interaction --force --driver=mysqli --host="${DB_HOST}" --port="${DB_PORT}" \
@@ -170,12 +163,11 @@ EOF
 
 echo "Scenario 1: fresh installation"
 
-expect_equals "191" "$(sql "SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tx_migrations' AND COLUMN_NAME = 'version'")" \
-    "tx_migrations.version is varchar(191)"
+expect_equals "191" "$(column tx_migrations version CHARACTER_MAXIMUM_LENGTH)" "tx_migrations.version is varchar(191)"
 expect_equals "version" "$(sql "SELECT COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tx_migrations' AND CONSTRAINT_NAME = 'PRIMARY'")" \
     "tx_migrations has the primary key on version"
 
-expect_equals "" "$(sql "SELECT COLUMN_DEFAULT FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tx_migrations' AND COLUMN_NAME = 'version' AND COLUMN_DEFAULT IS NOT NULL")" \
+expect_equals "" "$(column tx_migrations version "COALESCE(COLUMN_DEFAULT, '')")" \
     "tx_migrations.version has no default, like the Doctrine metadata storage"
 expect_exit 0 "migrations:status before the first migration" typo3 migrations:status --no-interaction
 
@@ -200,11 +192,11 @@ grep -q 'Version20200101000000.*migrated' "${PROJECT_PATH}/last-output.txt" && p
 expect_exit 0 "migrations:latest" typo3 migrations:latest --no-interaction
 
 write_migration Version20200102000000 "\$this->addSql('THIS IS NOT SQL');" ""
-expect_failure "migrations:migrate reports a failing migration" typo3 migrations:migrate --no-interaction
+expect_exit '!0' "migrations:migrate reports a failing migration" typo3 migrations:migrate --no-interaction
 rm -f "${MIGRATIONS_PATH}/Version20200102000000.php"
 
 expect_exit 0 "migrations:execute --down" typo3 migrations:execute --down "${NAMESPACE}\\Version20200101000001" --no-interaction
-expect_equals "" "$(sql "SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'mig_probe' AND COLUMN_NAME = 'title'")" "down reverted the schema change"
+expect_equals "" "$(column mig_probe title COLUMN_NAME)" "down reverted the schema change"
 expect_equals "1" "$(sql "SELECT COUNT(*) FROM tx_migrations")" "down removed the entry"
 rm -f "${MIGRATIONS_PATH}/Version20200101000001.php"
 
@@ -217,8 +209,7 @@ sql "CREATE TABLE mig_probe (uid INT NOT NULL)"
 sql "INSERT INTO tx_migrations VALUES ('${NAMESPACE//\\/\\\\}\\\\Version20200101000000', '2020-01-01 00:00:00', 5)"
 
 expect_exit 0 "database:updateschema updates the table" typo3 database:updateschema '*.add,*.change' --no-interaction
-expect_equals "191" "$(sql "SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tx_migrations' AND COLUMN_NAME = 'version'")" \
-    "tx_migrations.version shortened to varchar(191)"
+expect_equals "191" "$(column tx_migrations version CHARACTER_MAXIMUM_LENGTH)" "tx_migrations.version shortened to varchar(191)"
 expect_equals "${NAMESPACE}\\Version20200101000000" "$(sql "SELECT version FROM tx_migrations")" "executed migration kept"
 
 write_migration Version20200103000000 "\$this->addSql('CREATE TABLE mig_probe_2 (uid INT NOT NULL)');" "\$this->addSql('DROP TABLE mig_probe_2');"
